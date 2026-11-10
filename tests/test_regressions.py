@@ -106,3 +106,13 @@ def test_validation_failure_preserves_known_usage(isolated_storage, monkeypatch)
     assert saved.status == 'erro'
     assert saved.cost_usd == .01
     assert saved.model == 'mock'
+
+
+def test_iso_currency_inr_is_supported():
+    df = frame([100,200,300])
+    df["currency"] = "INR"
+    result = validation.validate(validation.add_row_flags(df))
+    assert result["status"] == "aprovado"
+    df["currency"] = "ZZZ"
+    result = validation.validate(validation.add_row_flags(df))
+    assert result["status"] == "revisao_humana"

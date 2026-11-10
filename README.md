@@ -127,3 +127,10 @@ backend\.venv\Scripts\python -m pytest -q
 ```
 
 Os testes exercitam Great Expectations, Streamlit, CSV e um flow Prefect real. Somente a chamada à API é simulada. Não confundir esses testes com a avaliação real dos 50 cardápios.
+
+
+## Resultado do lote real de 50 imagens
+
+A avaliação real foi executada em 10/11/2026: **50 imagens distintas, 1.289 itens, 37 aprovadas e 13 para revisão**, sem falhas de API. Missing: **0,36%**. Preços razoáveis: **98,84%**. Custo estimado: **USD 0,173299** pelas tarifas configuradas.
+
+Leia [o relatório completo](reports/avaliacao_50/RELATORIO_50.md) e baixe [os resultados e a auditoria](reports/avaliacao_50/resultados_completos.zip). A regra de moedas foi corrigida para ISO 4217 e as extrações foram revalidadas sem novas chamadas à IA. Aprovação dos guardrails não significa acurácia garantida de transcrição.

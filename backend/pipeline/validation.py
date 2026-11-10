@@ -6,10 +6,11 @@ import threading
 
 import great_expectations as gx
 import pandas as pd
+import pycountry
 
 from . import config
 
-CURRENCIES = ["BRL", "USD", "EUR", "GBP", "ARS", "CLP", "MXN", "COP", "PEN", "UYU", "CAD", "AUD", "JPY", "CHF"]
+CURRENCIES = sorted(currency.alpha_3 for currency in pycountry.currencies)
 
 PRECO = "Preços válidos e positivos"
 NULOS = "Campos obrigatórios preenchidos"

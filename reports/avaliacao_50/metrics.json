@@ -1,0 +1,34 @@
+{
+  "menus_processados": 50,
+  "menus_distintos_verificados": 50,
+  "menus_distintos_sem_erro": 50,
+  "meta_50_cardapios_atingida": true,
+  "menus_com_erro": 0,
+  "menus_aprovados": 37,
+  "menus_revisao_humana": 13,
+  "itens_extraidos": 1289,
+  "pct_missing_data": 0.36,
+  "pct_missing_por_campo": {
+    "category": 0.0,
+    "item_name": 0.0,
+    "price": 1.09
+  },
+  "pct_linhas_com_campo_faltante": 1.09,
+  "pct_precos_razoaveis": 98.84,
+  "precos_ausentes": 14,
+  "precos_fora_da_faixa": 1,
+  "faixa_preco_razoavel": [
+    1.0,
+    1500.0
+  ],
+  "latencia_media_s": 18.814,
+  "latencia_p50_s": 14.846,
+  "latencia_max_s": 79.9763,
+  "tokens_input_medio": 1556.56,
+  "tokens_output_medio": 1538.42,
+  "custo_medio_usd": 0.003466,
+  "custo_total_usd": 0.173299,
+  "custo_conhecido_usd": 0.173299,
+  "execucoes_custo_desconhecido": 0,
+  "score_gx_medio": 0.9746
+}
