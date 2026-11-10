@@ -43,6 +43,14 @@ docker compose up --build
 - Latência até o commit, tokens de entrada/saída/pensamento e custo quando tarifas foram configuradas.
 - Testes automatizados e GitHub Actions.
 
+## Gemini gratuito
+
+O modelo padrão é `gemini-2.5-flash`, que oferece plano gratuito sujeito às cotas da conta. No Google AI Studio, confirme **Nível gratuito** no projeto da chave. Não ative faturamento para usar esta configuração. O sistema não migra automaticamente para outro projeto ou plano pago.
+
+No `.env`, use `GEMINI_PRICING_TIER=free` apenas depois de confirmar o plano. Nessa modalidade, execuções com uso reportado registram custo zero e conservam a contagem de tokens. Isso documenta a modalidade declarada, não altera o faturamento do Google nem garante gratuidade se você usar uma chave de projeto pago. Em plano pago, remova essa configuração e informe as tarifas.
+
+Se a API responder por limite de cota, aguarde a renovação indicada no AI Studio. Divida os 50 cardápios em sessões se necessário. A chave deve ficar no `.env` local ou no campo de senha do aplicativo e nunca no GitHub.
+
 ## Prefect e observabilidade
 
 Sem configuração, o Prefect abre um servidor temporário local para executar os flows. Para manter histórico de orquestração e visualizar tarefas:
@@ -58,8 +66,8 @@ Abra http://localhost:4200. As dependências entre tarefas são sequenciais e ex
 
 ## Avaliação dos 50 cardápios
 
-1. Colete pelo menos 50 imagens diferentes da Web. Inclua layouts de uma e várias colunas, fotos com ruído e idiomas/moedas identificáveis. Registre fonte e características no manifesto.
-2. Use o modelo `data/manifest.example.csv` e crie `data/manifest.csv` com URLs reais e caminhos locais. O exemplo não é uma amostra real.
+1. O manifesto `data/manifest.csv` já lista 50 imagens públicas distintas, baixadas e verificadas durante o desenvolvimento. `data/collection.csv` registra os hashes. Para obter as imagens no seu computador, execute o coletor. Confira visualmente os layouts e registre as características da amostra.
+2. Para substituir a amostra, use `data/manifest.example.csv` e preencha URLs reais e caminhos locais. O arquivo example não é uma amostra real.
 3. Se as imagens ainda não estiverem baixadas: `python -m menu_atlas.collect data/manifest.csv`.
 4. Configure chave, modelo, tarifas e limite de preço adequado ao conjunto.
 5. Execute o lote em um banco separado:
@@ -70,7 +78,7 @@ python -m menu_atlas.batch data/manifest.csv --db data/evaluation.sqlite
 
 O comando gera `reports/metrics.json`, `reports/runs.csv`, `reports/report.md` e o SQLite povoado. Não preencha as métricas manualmente. Inspecione as falhas e complete a discussão qualitativa.
 
-**Estado da entrega:** software implementado e testes locais aprovados. A extração real via Gemini e o lote de 50 imagens ainda dependem de uma chave de API e da coleta do conjunto. Não há alegação de 50 cardápios processados nem banco real povoado nesta versão. A apresentação e o relatório final precisam receber evidências dessa execução antes da entrega ao professor.
+**Estado da entrega:** software implementado e testes locais aprovados. A extração real via Gemini e o lote de 50 imagens ainda dependem de uma chave de API. O conjunto de 50 imagens já foi coletado e tem fontes e hashes no manifesto. Não há alegação de 50 cardápios processados nem banco real povoado nesta versão. A apresentação e o relatório final precisam receber evidências dessa execução antes da entrega ao professor.
 
 ## Trabalhar em dupla
 

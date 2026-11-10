@@ -34,10 +34,12 @@ with st.sidebar:
     page = st.radio("Workspace", ["Extrair cardápio", "Biblioteca", "Qualidade & avaliação", "Sobre o projeto"], label_visibility="collapsed")
     st.divider()
     st.caption("CONEXÃO COM A IA")
+    st.caption("Gemini 2.5 Flash · compatível com plano gratuito, sujeito às cotas do projeto")
     key = st.text_input("Chave Gemini", type="password", help="Usada nesta sessão. Não é gravada no banco.")
     model = st.text_input("Modelo", os.getenv("GEMINI_MODEL", "gemini-2.5-flash"))
     cap = st.number_input("Preço máximo razoável", min_value=1.0, value=float(os.getenv("MAX_REASONABLE_PRICE", "1000")))
     st.caption("Ajuste à moeda e ao tipo de restaurante do seu conjunto.")
+    st.link_button("Obter chave no Google AI Studio", "https://aistudio.google.com/api-keys")
     st.divider()
     st.caption("PROJETO ACADÊMICO · IBMEC\n\nExtração e Preparação de Dados")
 

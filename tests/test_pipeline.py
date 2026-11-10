@@ -55,3 +55,23 @@ def test_corrupt_image_recorded_as_failure(tmp_path):
     result=process_menu(b"not an image",db_path=str(tmp_path/"failure.sqlite"))
     assert result["status"]=="failed"
     assert tables(str(tmp_path/"failure.sqlite"))[0].iloc[0].status=="failed"
+
+def test_extraction_free_tier_counts_tokens(monkeypatch):
+    from types import SimpleNamespace
+    import menu_atlas.extraction as extraction
+    usage=SimpleNamespace(prompt_token_count=100,candidates_token_count=20,thoughts_token_count=5)
+    class Client:
+        def __init__(self, **kwargs):
+            self.models=SimpleNamespace(generate_content=lambda **kw: SimpleNamespace(text=json.dumps(GOOD),usage_metadata=usage))
+        def __enter__(self): return self
+        def __exit__(self,*args): pass
+    monkeypatch.setattr(extraction.genai,'Client',Client)
+    monkeypatch.setenv('GEMINI_PRICING_TIER','free')
+    result=extraction.extract_image(b'fake-image',api_key='test-only')
+    assert result['estimated_cost_usd']==0
+    assert result['thinking_tokens']==5
+    monkeypatch.delenv('GEMINI_PRICING_TIER')
+    monkeypatch.setenv('INPUT_USD_PER_MILLION','1')
+    monkeypatch.setenv('OUTPUT_USD_PER_MILLION','2')
+    result=extraction.extract_image(b'fake-image',api_key='test-only')
+    assert abs(result['estimated_cost_usd']-0.00015)<1e-10

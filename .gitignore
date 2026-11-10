@@ -9,3 +9,6 @@ data/*
 !data/manifest.example.csv
 reports/
 *.egg-info/
+!data/manifest.csv
+!data/collection.csv
+!data/SOURCES.md

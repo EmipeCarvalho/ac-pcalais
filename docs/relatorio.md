@@ -6,7 +6,7 @@ Extrair cardápios de imagens da Web, validar a qualidade e persistir os dados c
 
 ## Estado atual
 
-O software possui testes locais de validação, armazenamento e fluxo Prefect. A chamada multimodal é simulada nesses testes. Não foi executada a avaliação real de 50 cardápios, porque não foi fornecida chave Gemini nem um conjunto de 50 imagens. Assim, este documento descreve o protocolo, não resultados de um experimento concluído.
+O software possui testes locais de validação, armazenamento e fluxo Prefect. A chamada multimodal é simulada nesses testes. Não foi executada a avaliação real de 50 cardápios, porque não foi fornecida chave Gemini para as chamadas. O conjunto de 50 imagens distintas foi coletado da Web, e o manifesto registra fontes e hashes. Assim, este documento descreve o protocolo, não resultados de um experimento concluído.
 
 ## Amostragem e reprodutibilidade
 

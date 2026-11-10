@@ -32,6 +32,8 @@ def extract_image(image: bytes, api_key: str | None = None, model: str | None = 
     rates = (os.getenv("INPUT_USD_PER_MILLION"), os.getenv("OUTPUT_USD_PER_MILLION"))
     cost = ((input_tokens * float(rates[0]) + (output_tokens + thinking) * float(rates[1])) / 1e6
             if all(rates) and usage is not None else None)
+    if os.getenv("GEMINI_PRICING_TIER") == "free" and usage is not None:
+        cost = 0.0
     return {"menu": Menu.model_validate_json(response.text).model_dump(), "model": model,
             "input_tokens": input_tokens, "output_tokens": output_tokens,
             "thinking_tokens": thinking, "estimated_cost_usd": cost}
