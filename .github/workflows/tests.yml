@@ -1,4 +1,4 @@
-name: Tests
+name: Regression tests
 on: [push, pull_request]
 jobs:
   test:
@@ -9,5 +9,7 @@ jobs:
         with:
           python-version: '3.12'
           cache: pip
-      - run: pip install -e '.[dev]'
+      - run: pip install -r backend/requirements.txt pytest
       - run: pytest -q
+        env:
+          PREFECT_SERVER_ANALYTICS_ENABLED: 'false'

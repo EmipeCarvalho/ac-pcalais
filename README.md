@@ -1,126 +1,129 @@
-# Menu Atlas
+# Cardápios ETL — POC inspirada no pipeline da DoorDash
 
-Extração de cardápios com interface Streamlit, tipografia Inter, Gemini multimodal, Prefect 3, Great Expectations e SQLite.
+Este projeto extrai dados estruturados de fotos de cardápios usando um **modelo multimodal** (OpenAI GPT, Abordagem 2), aplica **guardrails com Great Expectations** e persiste o resultado em um **CSV consolidado**. Todo o fluxo é orquestrado com **Prefect**. A interface gráfica é em **Streamlit**.
 
-## Começar
+```
+foto ──► [pre-processar-imagem] ──► [extrair-com-modelo-multimodal] ──► [estruturar-e-normalizar]
+                                                                              │
+         output/menu_items.csv ◄── [persistir-csv] ◄── [validar-com-great-expectations]
+         output/pipeline_runs.csv
+```
 
-Requer Python 3.11 a 3.13. Recomendado: Python 3.12.
+| Task do Prefect | O que faz |
+|---|---|
+| `pre-processar-imagem` | Corrige a rotação EXIF de fotos de celular, converte para RGB e limita o tamanho a 2000 px |
+| `extrair-com-modelo-multimodal` | Envia imagem + prompt ao GPT (Responses API, Structured Outputs), com saída validada por um schema Pydantic (`pipeline/schemas.py`). Sem retries automáticos para evitar duplicação de chamadas pagas |
+| `estruturar-e-normalizar` | Achata a hierarquia categoria → item → variação em linhas e limpa os textos |
+| `validar-com-great-expectations` | Roda 15 expectativas (preços, nulos, consistência, formato, duplicidade) e decide entre aprovado e revisão humana |
+| `persistir-csv` | Faz append em `menu_items.csv` e `pipeline_runs.csv` |
 
-```bash
-git clone https://github.com/EmipeCarvalho/ac-pcalais.git
-cd ac-pcalais
+## Estrutura
+
+```
+backend/
+  pipeline/config.py        configurações (.env)
+  pipeline/schemas.py       schema de saída do modelo
+  pipeline/extractor.py     chamada ao modelo multimodal + custo
+  pipeline/validation.py    suíte do Great Expectations (guardrails)
+  pipeline/flow.py          @tasks e @flow do Prefect
+  pipeline/storage.py       append nos CSVs
+  pipeline/metrics.py       métricas do relatório
+  app.py     interface gráfica
+  scripts/run_batch.py avaliação em larga escala + relatório
+data/                  imagens dos cardápios (entrada do lote)
+output/                CSVs gerados
+reports/               quality_report.md + metrics.json
+docs/DICIONARIO_DE_DADOS.md
+```
+
+## Como rodar
+
+Os comandos abaixo são para o terminal do Windows (PowerShell ou o terminal do VS Code) e partem da raiz do projeto. Eles chamam o Python do ambiente virtual direto (`.venv\Scripts\python`), então não é preciso ativar o ambiente.
+
+### Primeira instalação (só uma vez)
+```powershell
+cd backend
 python -m venv .venv
-# Windows PowerShell:
-.venv\Scripts\Activate.ps1
-# macOS / Linux:
-# source .venv/bin/activate
-pip install -e ".[dev]"
+.venv\Scripts\python -m pip install --upgrade pip
+.venv\Scripts\python -m pip install -r requirements.txt
+copy .env.example .env
+```
+Depois, abra `backend/.env` e preencha:
+- `OPENAI_API_KEY`: a sua chave da OpenAI;
+- `PRICE_INPUT_PER_1M` e `PRICE_OUTPUT_PER_1M`: os preços do modelo, usados no cálculo de custo.
+
+### Iniciar a aplicação
+```powershell
+cd backend
+.venv\Scripts\python -m streamlit run app.py
+```
+A interface abre em http://localhost:8501. Com uma foto, você acompanha cada etapa do pipeline. Com várias, elas são processadas em lote, com barra de progresso e uma tabela de resultados.
+
+### Processar o lote de cardápios (relatório de qualidade)
+Coloque as imagens em `data/` e rode:
+```powershell
+cd backend
+.venv\Scripts\python -m scripts.run_batch                # processa os que ainda não foram processados
+.venv\Scripts\python -m scripts.run_batch --force        # reprocessa todos
+.venv\Scripts\python -m scripts.run_batch --report-only  # só regenera o relatório a partir dos CSVs
+```
+O comando gera `reports/quality_report.md` e `reports/metrics.json` com:
+- % de missing data;
+- % de preços razoáveis;
+- latência média;
+- custo médio por cardápio.
+
+### (Opcional) Acompanhar os flows na interface do Prefect
+Sem servidor configurado, o Prefect sobe um servidor temporário a cada execução. Para ver o histórico dos flows na interface web:
+```powershell
+# terminal 1
+cd backend
+.venv\Scripts\prefect server start                                    # http://127.0.0.1:4200
+
+# terminal 2 (uma vez), depois inicie a aplicação normalmente
+cd backend
+.venv\Scripts\prefect config set PREFECT_API_URL=http://127.0.0.1:4200/api
 ```
 
-Copie `.env.example` para `.env` e preencha `GEMINI_API_KEY`. Você também pode informar a chave somente na sessão pela interface. Obtenha a sua no Google AI Studio: https://aistudio.google.com/apikey. Nunca coloque chaves em commits.
+## Configuração (`backend/.env`)
+| Variável | Padrão | Descrição |
+|---|---|---|
+| `OPENAI_API_KEY` | — | Chave da API da OpenAI |
+| `OPENAI_MODEL` | `gpt-5-mini` | Modelo multimodal. `gpt-5-mini` foi o mais barato que extraiu os cardápios completos nos testes; o `gpt-5-nano` é ~5x mais barato, mas pulou itens |
+| `OPENAI_REASONING_EFFORT` | `low` | `low`/`medium`/`high`. Deixe vazio para modelos sem raciocínio (ex.: `gpt-4.1`) |
+| `PRICE_INPUT_PER_1M` / `PRICE_OUTPUT_PER_1M` | `0.25` / `2.00` | Preço do modelo em US$ por 1M de tokens, usado no cálculo de custo |
+| `PRICE_MIN` / `PRICE_MAX` | `1` / `1500` | Faixa de preço considerada razoável |
+| `REVIEW_THRESHOLD` | `0.85` | Fração mínima de expectativas aprovadas, além da aprovação de todas as regras essenciais |
 
-```bash
-streamlit run app.py
+
+## Correções e avaliação reproduzível
+
+Esta versão exige aprovação de todas as regras essenciais de preço, campos obrigatórios, texto e duplicidade. O limiar de 85% não pode compensar uma falha essencial. Preços ausentes entram no denominador de preços razoáveis. A interface trata resultados vazios, custos desconhecidos e histórico apenas com falhas.
+
+A latência das novas execuções é medida após o append dos dois CSVs. Os dois níveis de retries automáticos foram desativados. Uma falha sem uso reportado recebe custo desconhecido, nunca zero. O relatório separa subtotal conhecido e total incompleto. Tarifas ausentes geram custo desconhecido; preencha as tarifas vigentes do modelo efetivamente usado.
+
+### Coleta dos 50 cardápios com fontes
+
+A partir de backend/:
+
+```powershell
+.venv\Scripts\python -m scripts.collect_menus
+.venv\Scripts\python -m scripts.run_batch --manifest ../data/manifest.csv
 ```
 
-Abra http://localhost:8501. Envie uma foto, clique em **Extrair cardápios** e confira os itens, as validações e o JSON. O app suporta múltiplas imagens. Histórico e exportações ficam na Biblioteca.
+O manifesto inclui 50 imagens públicas distintas com URLs e SHA-256, verificadas durante o desenvolvimento. O coletor baixa os arquivos no computador da dupla. A execução real precisa da chave OpenAI local. Use `--delay 5` se quiser espaçar chamadas e `--force` somente quando desejar pagar por um novo processamento.
 
-Alternativa com Docker, após configurar `.env`:
+A retomada usa hashes, não nomes de arquivo. Somente execuções novas com hashes comprovam imagens distintas. Rodar a mesma imagem 50 vezes não atende à meta. O relatório indica explicitamente se existem pelo menos 50 imagens distintas processadas sem erro.
 
-```bash
-docker compose up --build
+Os dez exemplos e CSVs originais foram preservados como evidência histórica. Seus status e tempos refletem a implementação anterior e não foram reescritos como se tivessem sido medidos pela nova versão. Para o experimento final, arquive os CSVs históricos antes de iniciar o lote, evitando misturar versões. Consulte [a análise e as pendências](docs/AVALIACAO.md) e [as fontes](data/FONTES.md).
+
+### Testes sem consumir créditos
+
+Na raiz do repositório, com o ambiente virtual instalado:
+
+```powershell
+backend\.venv\Scripts\python -m pip install pytest
+backend\.venv\Scripts\python -m pytest -q
 ```
 
-## O que está implementado
-
-- Preparação de imagens com orientação EXIF, limites de tamanho e normalização PNG.
-- Saída JSON estruturada com Gemini e Pydantic, preservando campos desconhecidos como nulos.
-- `@flow` do Prefect encadeando quatro tarefas: preparação, extração/estruturação, validação e armazenamento.
-- Nove regras Great Expectations: quatro campos obrigatórios, preço positivo e dentro do limite, categoria consistente, duplicidade, comprimento do nome e formato da moeda.
-- Quarentena lógica: cada item recebe `valid` ou `review`. As exportações aprovadas incluem somente itens válidos, enquanto o banco preserva toda a auditoria.
-- Banco SQLite persistente e cumulativo, sem sobrescrever execuções anteriores.
-- Lote por manifesto, deduplicação SHA-256 dentro do lote e relatório automático com as quatro métricas exigidas.
-- Latência até o commit, tokens de entrada/saída/pensamento e custo quando tarifas foram configuradas.
-- Testes automatizados e GitHub Actions.
-
-## Gemini gratuito
-
-O modelo padrão é `gemini-2.5-flash`, que oferece plano gratuito sujeito às cotas da conta. No Google AI Studio, confirme **Nível gratuito** no projeto da chave. Não ative faturamento para usar esta configuração. O sistema não migra automaticamente para outro projeto ou plano pago.
-
-No `.env`, use `GEMINI_PRICING_TIER=free` apenas depois de confirmar o plano. Nessa modalidade, execuções com uso reportado registram custo zero e conservam a contagem de tokens. Isso documenta a modalidade declarada, não altera o faturamento do Google nem garante gratuidade se você usar uma chave de projeto pago. Em plano pago, remova essa configuração e informe as tarifas.
-
-Se a API responder por limite de cota, aguarde a renovação indicada no AI Studio. Divida os 50 cardápios em sessões se necessário. A chave deve ficar no `.env` local ou no campo de senha do aplicativo e nunca no GitHub.
-
-## Prefect e observabilidade
-
-Sem configuração, o Prefect abre um servidor temporário local para executar os flows. Para manter histórico de orquestração e visualizar tarefas:
-
-```bash
-prefect server start
-# Em outro terminal, antes de iniciar o app:
-prefect config set PREFECT_API_URL=http://127.0.0.1:4200/api
-streamlit run app.py
-```
-
-Abra http://localhost:4200. As dependências entre tarefas são sequenciais e explícitas pelo retorno de cada etapa. Não há retry automático da API paga: evita reenvios e custos invisíveis. O usuário pode repetir uma tentativa com falha.
-
-## Avaliação dos 50 cardápios
-
-1. O manifesto `data/manifest.csv` já lista 50 imagens públicas distintas, baixadas e verificadas durante o desenvolvimento. `data/collection.csv` registra os hashes. Para obter as imagens no seu computador, execute o coletor. Confira visualmente os layouts e registre as características da amostra.
-2. Para substituir a amostra, use `data/manifest.example.csv` e preencha URLs reais e caminhos locais. O arquivo example não é uma amostra real.
-3. Se as imagens ainda não estiverem baixadas: `python -m menu_atlas.collect data/manifest.csv`.
-4. Configure chave, modelo, tarifas e limite de preço adequado ao conjunto.
-5. Execute o lote em um banco separado:
-
-```bash
-python -m menu_atlas.batch data/manifest.csv --db data/evaluation.sqlite
-```
-
-O comando gera `reports/metrics.json`, `reports/runs.csv`, `reports/report.md` e o SQLite povoado. Não preencha as métricas manualmente. Inspecione as falhas e complete a discussão qualitativa.
-
-**Estado da entrega:** software implementado e testes locais aprovados. A extração real via Gemini e o lote de 50 imagens ainda dependem de uma chave de API. O conjunto de 50 imagens já foi coletado e tem fontes e hashes no manifesto. Não há alegação de 50 cardápios processados nem banco real povoado nesta versão. A apresentação e o relatório final precisam receber evidências dessa execução antes da entrega ao professor.
-
-## Trabalhar em dupla
-
-Seu colega pode clonar por ser público. Para escrever diretamente, o proprietário precisa adicioná-lo em Settings → Collaborators. Sem convite, ele pode usar fork e pull request.
-
-```bash
-git checkout -b feat/minha-melhoria
-# faça alterações
-git add .
-git commit -m "Descreve a alteração"
-git push -u origin feat/minha-melhoria
-```
-
-Uma divisão possível: pessoa A cuida do pipeline, schema e armazenamento; pessoa B coleta as imagens, confere resultados e prepara análise/apresentação. Ambos devem testar o fluxo ao vivo.
-
-## Testes
-
-```bash
-pytest -q
-```
-
-Os testes usam respostas de IA simuladas para serem reproduzíveis e não consumir créditos. Eles exercitam o Prefect real, a validação Great Expectations real e o SQLite real. Testes da API Gemini exigem uma chave válida e imagens reais.
-
-## Entrega acadêmica
-
-- [Arquitetura, decisões e métricas](docs/arquitetura.md)
-- [Dicionário de dados](docs/dicionario.md)
-- [Relatório e protocolo de avaliação](docs/relatorio.md)
-- [Roteiro da apresentação e demonstração](docs/apresentacao.md)
-
-## Limitações
-
-Uma regra de plausibilidade não detecta todo erro de leitura: R$ 29 pode ser lido como R$ 79 e continuar válido. A avaliação de acurácia exige conferência manual. Moeda ausente permanece nula. Preços por tamanho viram itens separados. Não atribuímos uma categoria que não esteja no cardápio. O máximo razoável deve ser ajustado por moeda e tipo de cardápio. Menus vazios ficam para revisão, com métricas de itens indefinidas.
-
-A latência começa quando o backend recebe os bytes e inclui preparação, inferência, validação e commit, mas não o tempo de rede do navegador até o servidor. Falhas são contabilizadas separadamente. Custos de chamadas que falham sem retornar uso são desconhecidos. Para apresentar gasto total faturado, confronte o painel do provedor.
-
-## Referências
-
-- DoorDash: https://careersatdoordash.com/blog/doordash-llm-transcribe-menu/
-- ByteByteGo: https://blog.bytebytego.com/p/how-doordash-uses-ai-models-to-understand
-- Prefect: https://docs.prefect.io/v3/concepts/tasks
-- Great Expectations: https://docs.greatexpectations.io/docs/core/connect_to_data/dataframes/
-- Gemini: https://ai.google.dev/gemini-api/docs/structured-output
-
-Código disponível sob licença MIT. Imagens de terceiros mantêm suas próprias licenças e atribuições.
+Os testes exercitam Great Expectations, Streamlit, CSV e um flow Prefect real. Somente a chamada à API é simulada. Não confundir esses testes com a avaliação real dos 50 cardápios.
