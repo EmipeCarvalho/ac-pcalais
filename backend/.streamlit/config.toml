@@ -1,24 +1,24 @@
-# Tema claro e escuro. O padrão segue o sistema; o usuário troca no menu ⋮ (System / Light / Dark).
 [theme]
-font = "Instrument Sans:https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&display=swap, sans-serif"
-headingFont = "Young Serif:https://fonts.googleapis.com/css2?family=Young+Serif&display=swap, serif"
-headingFontWeights = 400
-metricValueFontWeight = 500
-baseRadius = "8px"
+base = "light"
+font = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700;800&display=swap, sans-serif"
+headingFont = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700;800&display=swap, sans-serif"
+headingFontWeights = [600, 700]
+metricValueFontWeight = 600
+baseRadius = "14px"
 
 [theme.light]
-primaryColor = "#1F4E8C"
-backgroundColor = "#F5F7FA"
-secondaryBackgroundColor = "#E8EDF4"
-textColor = "#14202E"
-borderColor = "#D6DEE8"
+primaryColor = "#22624E"
+backgroundColor = "#F5F7F0"
+secondaryBackgroundColor = "#E8EEE1"
+textColor = "#183B30"
+borderColor = "#DFE8DD"
 
 [theme.dark]
-primaryColor = "#8DB0E0"
-backgroundColor = "#121A24"
-secondaryBackgroundColor = "#1B2532"
-textColor = "#E6ECF3"
-borderColor = "#2C3949"
+primaryColor = "#BADE93"
+backgroundColor = "#102219"
+secondaryBackgroundColor = "#192D27"
+textColor = "#E9F0E7"
+borderColor = "#345043"
 
 [browser]
 gatherUsageStats = false
