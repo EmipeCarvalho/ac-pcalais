@@ -1,0 +1,9 @@
+prefect==3.9.2
+great_expectations==1.24.1
+openai>=3.49,<4
+streamlit==1.67.0
+pandas>=3.0,<4
+pillow>=13.0,<14
+python-dotenv>=1,<2
+requests>=2.32,<3
+pycountry>=24.6.1,<27

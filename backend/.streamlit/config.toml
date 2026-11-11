@@ -1,0 +1,27 @@
+[theme]
+base = "light"
+font = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700;800&display=swap, sans-serif"
+headingFont = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700;800&display=swap, sans-serif"
+headingFontWeights = [600, 700]
+metricValueFontWeight = 600
+baseRadius = "14px"
+
+[theme.light]
+primaryColor = "#22624E"
+backgroundColor = "#F5F7F0"
+secondaryBackgroundColor = "#E8EEE1"
+textColor = "#183B30"
+borderColor = "#DFE8DD"
+
+[theme.dark]
+primaryColor = "#BADE93"
+backgroundColor = "#102219"
+secondaryBackgroundColor = "#192D27"
+textColor = "#E9F0E7"
+borderColor = "#345043"
+
+[browser]
+gatherUsageStats = false
+
+[client]
+toolbarMode = "viewer"
